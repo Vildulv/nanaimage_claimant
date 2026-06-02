@@ -12,15 +12,14 @@ struct CookieStore {
 const CONFIG_FILE: &str = "./cookie.json";
 const CLAIM_API_URL: &str = "https://nanaimage.ai/api/claim-daily-credits";
 
-#[tokio::main]
-async fn main() -> Result<()> {
+fn main() -> Result<()> {
     let path = PathBuf::from(CONFIG_FILE);
 
     let store: CookieStore = CookieStore::load_from_file().context("Could not load cookie store")?;
 
     ensure!(!store.cookie.is_empty(), "Field cookie should not be empty");
 
-    let client = reqwest::Client::new();
+    let client = reqwest::blocking::Client::new();
     let mut request_builder = client.post(CLAIM_API_URL);
 
     if !store.cookie.is_empty() {
@@ -29,7 +28,7 @@ async fn main() -> Result<()> {
         request_builder = request_builder.header("Cookie", cookie_val);
     }
 
-    let response = request_builder.send().await?;
+    let response = request_builder.send()?;
 
     // Check new cookie if present
     let new_cookie = response
@@ -51,7 +50,7 @@ async fn main() -> Result<()> {
         println!("No new cookie found, leaving old one.");
     }
 
-    let body = response.text().await?;
+    let body = response.text()?;
     println!("Response body: {}", body);
 
     Ok(())
